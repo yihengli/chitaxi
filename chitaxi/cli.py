@@ -5,9 +5,13 @@ from .utils import config
 
 
 @click.command()
+@click.option('--config-reset', is_flag=True)
 @click.option('--config-data', default=None)
 @click.option('--clean-taxi', default='.')
-def main(config_data, clean_taxi):
+def main(config_reset, config_data, clean_taxi):
+    if config_reset:
+        config.reset_cofig()
+
     if config_data:
         config.config_data(config_data)
 
