@@ -33,6 +33,12 @@ def get_path_taxi():
                         settings['file_names']['taxi'])
 
 
+def get_path_feather_taxi(year):
+    settings = get_config()
+    return os.path.join(settings['data'],
+                        settings['file_names']['feather'].format(year))
+
+
 def config_data(data=None):
     """ By checking config.yaml, return or overwrite the data folder location
 

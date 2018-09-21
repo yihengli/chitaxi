@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from chitaxi.utils import config
 from chitaxi.datasets.cleaner import ChiTaxiFormat
@@ -28,3 +29,23 @@ def get_data_taxi(year=None, start=None, end=None):
                            'table',
                            where='{}>={} & {}<={}'.format(
                                time_col, start, time_col, end))
+
+
+def get_data_taxi_speed(year=None):
+    """ Load the data per year in the fastest speed. The backend is implmented
+    by using feather format. If the feather format hasn't been created, this
+    function may take some time to initialize it.
+
+    Note: As the yearly data is potentially huge. (4 - 5G), always make sure
+    you have enough RAM to read through the data
+
+        year (int, optional): Defaults to None. e.g. 2015
+    """
+    path_feather = config.get_path_feather_taxi(year)
+
+    if os.path.exists(path_feather):
+        return pd.read_feather(path_feather)
+    else:
+        df = get_data_taxi(year=year)
+        df.to_feather(path_feather)
+        return df
