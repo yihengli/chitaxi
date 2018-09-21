@@ -1,3 +1,4 @@
 data: ''
 file_names:
   taxi: chitaxi.h5
+  feather: chitaxi_{}.feather

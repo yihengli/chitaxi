@@ -7,7 +7,7 @@ from .utils import config
 @click.command()
 @click.option('--config-reset', is_flag=True)
 @click.option('--config-data', default=None)
-@click.option('--clean-taxi', default='.')
+@click.option('--clean-taxi', default=None)
 def main(config_reset, config_data, clean_taxi):
     if config_reset:
         config.reset_cofig()

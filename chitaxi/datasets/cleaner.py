@@ -1,10 +1,14 @@
 import os
 import pandas as pd
 import numpy as np
+from chitaxi.utils import logger
 from chitaxi.utils import config
 
 
-class ChiTaxiFormat():    
+logger = logger.get_logger()
+
+
+class ChiTaxiFormat():
     dir_path = os.path.dirname(os.path.realpath(__file__))
     MAPPER = os.path.join(dir_path, 'column_remapping.json')
 
@@ -58,16 +62,16 @@ class ChiTaxiFormat():
 def clean_chitax_csv(path, h5=config.get_path_taxi(), path_mapper=None):
     # TODO: Use a logger instead of print all the items
 
-    print('Reading File {}'.format(path))
+    logger.info('Reading File {}'.format(path))
     cols = ChiTaxiFormat()
 
     df = pd.read_csv(path, usecols=cols.ALL)
 
     # Cerate datetime values
     df[cols.TIME[0]] = pd.to_datetime(df[cols.TIME[0]],
-                                      format='%m/%d/%Y %H:%M:%S %p')
+                                      format='%m/%d/%Y %I:%M:%S %p')
     df[cols.TIME[1]] = pd.to_datetime(df[cols.TIME[1]],
-                                      format='%m/%d/%Y %H:%M:%S %p')
+                                      format='%m/%d/%Y %I:%M:%S %p')
     # Clean numerical dollar values
     df[cols.NUMBERS] = df[cols.NUMBERS].apply(
         lambda col: col.str.replace('$', '').astype(np.float), axis=0)
@@ -81,11 +85,22 @@ def clean_chitax_csv(path, h5=config.get_path_taxi(), path_mapper=None):
     df[cols.CATS].astype('category')
     df.columns = cols.COLS
 
-    print('Clean Done')
-    df.to_hdf(os.path.join(config.get_config()['data'], h5),
-              'table',
-              append=True,
-              format='table',
-              data_columns=cols.COLS)
-
-    print('HDF converted')
+    logger.info('Finished data cleaning, now switched to saving HDF5')
+    h5_path = os.path.join(config.get_config()['data'], h5)
+    if not os.path.exists(h5_path):
+        df.to_hdf(h5_path,
+                  'table',
+                  append=True,
+                  format='table',
+                  data_columns=cols.COLS,
+                  min_itemsize={'company': 50})
+    else:
+        logger.info("HD5 Exists, we are appeding to the existing h5")
+        store = pd.HDFStore(os.path.join(config.get_config()['data'], h5))
+        # Specifically using append method since each dataset has uneven
+        # company column strings size
+        store.append('table',
+                     df,
+                     data_columns=cols.COLS,
+                     min_itemsize={'company': 50})
+    logger.info('HDF converted')

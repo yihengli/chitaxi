@@ -17,7 +17,8 @@ setup(
         'sklearn',
         'tables',
         'pyyaml',
-        'click'
+        'click',
+        'coloredlogs'
     ],
     entry_points={
         "console_scripts": ["chitaxi = chitaxi.cli:main"]
