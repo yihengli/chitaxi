@@ -36,7 +36,7 @@ def save_as_feather(data, name):
         data.to_feather(os.path.join(config.get_config()['data'], name))
     except ValueError:
         data.reset_index().to_feather(
-            os.path.join(config.get_config()['data'],name))
+            os.path.join(config.get_config()['data'], name))
 
 
 def read_feather(name):
