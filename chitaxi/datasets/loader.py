@@ -32,8 +32,11 @@ def get_data_taxi(year=None, start=None, end=None):
 
 
 def save_as_feather(data, name):
-    data = data.reset_index()
-    data.to_feather(os.path.join(config.get_config()['data'], name))
+    try:
+        data.to_feather(os.path.join(config.get_config()['data'], name))
+    except ValueError:
+        data.reset_index().to_feather(
+            os.path.join(config.get_config()['data'],name))
 
 
 def read_feather(name):

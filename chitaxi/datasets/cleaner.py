@@ -4,8 +4,8 @@ import numpy as np
 import warnings
 import time
 from scipy import stats
-from chitaxi.utils import logger
-from chitaxi.utils import config
+from chitaxi.utils import logger, config
+from chitaxi.datasets import loader
 
 
 logger = logger.get_logger()
@@ -189,6 +189,43 @@ class Outlier():
     """ A set of tools to detect outliers from chicago taxi dataset
     """
 
+    def end_to_end_clean(self, data, filename='temp.feather'):
+        # TODO: Dynamic responses to user inputs
+        logger.info("STEP1: Duplications")
+        data = self.drop_duplicates(data)
+
+        logger.info("STEP2: Trips")
+        data = self.drop_at_threshhold(data,
+                                       metric='trip_total',
+                                       thresh=0.1,
+                                       islarger=False)
+
+        logger.info("STEP3: Miles")
+        data = self.drop_at_threshhold(data, metric='trip_miles', thresh=1000)
+
+        logger.info("STEP4: Extras")
+        data = self.drop_at_threshhold(data, metric='extras', thresh=100)
+
+        logger.info("STEP5: NANs")
+        data = self.drop_null_values(data, metric='trip_seconds')
+        data = self.drop_null_values(data, metric='trip_total')
+
+        logger.info("STEP6: Fare Models")
+        rules = [
+            {"thresh": 200, "values": ("abs_fare_diff", 50)},
+            {"thresh": np.inf, "values": ("abs_pct_diff", 1)}
+        ]
+        data = self.model_fares_outliers(data, rules)
+
+        logger.info("STEP7: Time Range Model")
+        data = self.time_range_outliers(data, IQR=1.5)[0]
+
+        logger.info("STEP8: Combined Two Models")
+        data = self.drop_outliers_one(data)
+
+        loader.save_as_feather(data, filename)
+        logger.info("DONE!")
+
     @report_details
     def drop_duplicates(self, data, info='duplications'):
         fmt = ChiTaxiFormat()
@@ -235,7 +272,7 @@ class Outlier():
                 will be marked as outliers.
 
         Returns:
-            pandas.DataFrame: Additional columns such as 
+            pandas.DataFrame: Additional columns such as
             * modeled price fares,
             * the diffrence between modeled price and actual price
             * the absolute percentage diffrence between two prices

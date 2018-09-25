@@ -2,10 +2,11 @@ import pandas as pd
 import numpy as np
 import datetime
 import multiprocessing as mp
-from scipy import stats
 from functools import partial
 from pandas.tseries.holiday import USFederalHolidayCalendar
+from sklearn.model_selection import cross_validate, train_test_split
 from chitaxi.datasets.cleaner import ChiTaxiFormat
+from chitaxi.datasets import loader
 from chitaxi.utils import logger
 
 
@@ -30,6 +31,38 @@ class Builder():
 
     def extract_y(self, data):
         return data.groupby([self.ID])[self.METRIC].sum()
+
+    def merge_data(self, X, y, dropna=True):
+        """ Both datasets should have taxi_id as their index.
+        """
+        logger.info("Merging features and labels...")
+        original = len(X)
+        df = pd.merge(X, y, left_index=True, right_index=True, how='left')
+        nans = df.iloc[:, -1].isna().sum()
+
+        logger.info("We have {} unique ids in 2015".format(original))
+        logger.info("{} of them ({:.5%}) dropped (nan) in 2016"
+                    .format(nans, nans/original))
+        if not dropna:
+            df.iloc[:, -1].fillna(0, inplace=True)
+        else:
+            df.dropna(inplace=True)
+        return df
+
+    def train_split(self, data, ylabel, testsize=0.2, seed=1, filename=None):
+        Y = data[[ylabel]]
+        X = data.drop(ylabel, axis=1)
+
+        X_train, X_test, y_train, y_test =\
+            train_test_split(X, Y, test_size=testsize, random_state=seed)
+
+        if filename:
+            loader.save_as_feather(X_train, filename + "_Xtrain.feather")
+            loader.save_as_feather(X_test, filename + "_Xtest.feather")
+            loader.save_as_feather(y_train, filename + "_Ytrain.feather")
+            loader.save_as_feather(y_test, filename + "_Ytest.feather")
+
+        return X_train, X_test, y_train, y_test
 
 
 class FeatureExtraction():
@@ -224,7 +257,7 @@ class FeatureExtraction():
         return taxi_seconds
 
     @check_groupby
-    def get_trip_miles(self):   
+    def get_trip_miles(self):
         taxi_miles = self.GROUP_BY.mean().unstack()["trip_miles"]
         new_col = ["miles_mean_"+str(m+1)
                    for m in range(taxi_miles.shape[1])]
