@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from chitaxi.utils import config
-from chitaxi.datasets.cleaner import ChiTaxiFormat
+from chitaxi.datasets import cleaner
 from datetime import date
 
 
@@ -18,7 +18,7 @@ def get_data_taxi(year=None, start=None, end=None):
         pandas.DataFrame
     """
     path_hdf = config.get_path_taxi()
-    time_col = ChiTaxiFormat().TIME[0].lower().replace(' ', '_')
+    time_col = cleaner.ChiTaxiFormat().TIME[0].lower().replace(' ', '_')
 
     if year:
         start = date(year, 1, 1).strftime('%Y%m%d')
