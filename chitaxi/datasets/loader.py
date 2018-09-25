@@ -31,21 +31,17 @@ def get_data_taxi(year=None, start=None, end=None):
                                time_col, start, time_col, end))
 
 
-def get_data_taxi_speed(year=None):
-    """ Load the data per year in the fastest speed. The backend is implmented
-    by using feather format. If the feather format hasn't been created, this
-    function may take some time to initialize it.
+def save_as_feather(data, name):
+    data = data.reset_index()
+    data.to_feather(os.path.join(config.get_config()['data'], name))
 
-    Note: As the yearly data is potentially huge. (4 - 5G), always make sure
-    you have enough RAM to read through the data
 
-        year (int, optional): Defaults to None. e.g. 2015
-    """
-    path_feather = config.get_path_feather_taxi(year)
+def read_feather(name):
+    return pd.read_feather(os.path.join(config.get_config()['data'], name))
 
-    if os.path.exists(path_feather):
-        return pd.read_feather(path_feather)
-    else:
-        df = get_data_taxi(year=year)
-        df.to_feather(path_feather)
-        return df
+
+def list_feathers():
+    for root, dirs, files in os.walk(config.get_config()['data']):
+        for f in files:
+            if f.endswith('.feather'):
+                print(f)
