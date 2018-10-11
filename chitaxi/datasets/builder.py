@@ -4,7 +4,7 @@ import datetime
 import multiprocessing as mp
 from functools import partial
 from pandas.tseries.holiday import USFederalHolidayCalendar
-from sklearn.model_selection import cross_validate, train_test_split
+from sklearn.model_selection import train_test_split
 from chitaxi.datasets.cleaner import ChiTaxiFormat
 from chitaxi.datasets import loader
 from chitaxi.utils import logger
@@ -28,9 +28,31 @@ class Builder():
     fmt = ChiTaxiFormat()
     ID = fmt.ID
     METRIC = fmt.METRIC
+    TIME = fmt.TIME[0].lower().replace(' ', '_')
 
-    def extract_y(self, data):
-        return data.groupby([self.ID])[self.METRIC].sum()
+    def extract_y(self, data, freq=None):
+        """ Extract the labels from the data that is cleaned from
+        Outlier.end_to_end_clean(). In addition to aggregated labels, this
+        function will also extract labels per freq
+
+        Args:
+            data (pandas.DataFrame): cleaned after outlier detections
+            freq (str, Optional): frequency per label
+
+        Returns:
+            pandas.DataFrame: the first column is the aggregated Y, Y per freq
+            afterward
+        """
+        aggregated = data.groupby([self.ID])[self.METRIC].sum()
+        aggregated.name = 'Y_total'
+        if freq is None:
+            return aggregated
+        else:
+            temp = data.groupby(
+                [self.ID, pd.Grouper(freq=freq, key=self.TIME)])[self.METRIC]\
+                .sum().unstack().fillna(0)
+            temp.columns = ["Y_" + str(i+1) for i in range(temp.shape[1])]
+            return pd.DataFrame(aggregated).join(temp)
 
     def merge_data(self, X, y, dropna=True):
         """ Both datasets should have taxi_id as their index.
