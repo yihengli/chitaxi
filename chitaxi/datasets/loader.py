@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from pyarrow import feather
 from chitaxi.utils import config
 from chitaxi.datasets import cleaner
 from datetime import date
@@ -40,7 +41,8 @@ def save_as_feather(data, name):
 
 
 def read_feather(name):
-    return pd.read_feather(os.path.join(config.get_config()['data'], name))
+    return feather.read_feather(
+        os.path.join(config.get_config()['data'], name), use_threads=True)
 
 
 def list_feathers():
